@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>智能冰箱管理系统</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        html, body {
+            overflow: hidden;
+            height: 100%;
+            width: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            overscroll-behavior: none;
+            -webkit-overflow-scrolling: auto;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(180deg, #f0f9ff 0%, #bae6fd 40%, #7dd3fc 70%, #0ea5e9 100%);
+            color: #1e293b;
+        }
+
+        /* ===== 雪花背景 ===== */
+        .snowflakes {
+            position: fixed;
+            top: -30px;
+            left: 0;
+            width: 100%;
+            height: calc(100% + 30px);
+            pointer-events: none;
+            z-index: 150;
+        }
+
+        .snowflake {
+            position: absolute;
+            top: -20px;
+            color: #fff;
+            opacity: 0.4;
+            font-size: 12px;
+            will-change: transform, opacity;
+            animation: fall linear infinite;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        @keyframes fall {
+            0% { transform: translateY(-20px) translateX(0) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.6; }
+            90% { opacity: 0.4; }
+            100% { transform: translateY(100vh) translateX(20px) rotate(360deg); opacity: 0; }
+        }
+
+        .snowflake:nth-child(1)  { left: 5%;  font-size: 10px; animation-duration: 10s; animation-delay: 0s; }
+        .snowflake:nth-child(2)  { left: 12%; font-size: 14px; animation-duration: 13s; animation-delay: 1s; }
+        .snowflake:nth-child(3)  { left: 18%; font-size: 8px;  animation-duration: 9s;  animation-delay: 2.5s; }
+        .snowflake:nth-child(4)  { left: 25%; font-size: 16px; animation-duration: 11s; animation-delay: 0.5s; }
+        .snowflake:nth-child(5)  { left: 32%; font-size: 11px; animation-duration: 14s; animation-delay: 3s; }
+        .snowflake:nth-child(6)  { left: 38%; font-size: 18px; animation-duration: 10s; animation-delay: 1.5s; }
+        .snowflake:nth-child(7)  { left: 45%; font-size: 9px;  animation-duration: 12s; animation-delay: 4s; }
+        .snowflake:nth-child(8)  { left: 52%; font-size: 15px; animation-duration: 9s;  animation-delay: 0.2s; }
+        .snowflake:nth-child(9)  { left: 58%; font-size: 12px; animation-duration: 13s; animation-delay: 2s; }
+        .snowflake:nth-child(10) { left: 65%; font-size: 10px; animation-duration: 11s; animation-delay: 3.5s; }
+        .snowflake:nth-child(11) { left: 72%; font-size: 17px; animation-duration: 10s; animation-delay: 1s; }
+        .snowflake:nth-child(12) { left: 78%; font-size: 8px;  animation-duration: 14s; animation-delay: 5s; }
+        .snowflake:nth-child(13) { left: 85%; font-size: 13px; animation-duration: 9s;  animation-delay: 0.8s; }
+        .snowflake:nth-child(14) { left: 92%; font-size: 11px; animation-duration: 12s; animation-delay: 2.2s; }
+        .snowflake:nth-child(15) { left: 8%;  font-size: 16px; animation-duration: 11s; animation-delay: 4.5s; }
+        .snowflake:nth-child(16) { left: 15%; font-size: 9px;  animation-duration: 13s; animation-delay: 1.2s; }
+        .snowflake:nth-child(17) { left: 28%; font-size: 14px; animation-duration: 10s; animation-delay: 3.8s; }
+        .snowflake:nth-child(18) { left: 42%; font-size: 10px; animation-duration: 12s; animation-delay: 0.3s; }
+        .snowflake:nth-child(19) { left: 55%; font-size: 18px; animation-duration: 9s;  animation-delay: 2.8s; }
+        .snowflake:nth-child(20) { left: 68%; font-size: 12px; animation-duration: 14s; animation-delay: 5.5s; }
+        .snowflake:nth-child(21) { left: 75%; font-size: 15px; animation-duration: 10s; animation-delay: 1.8s; }
+        .snowflake:nth-child(22) { left: 88%; font-size: 8px;  animation-duration: 11s; animation-delay: 4.2s; }
+        .snowflake:nth-child(23) { left: 95%; font-size: 13px; animation-duration: 13s; animation-delay: 0.6s; }
+        .snowflake:nth-child(24) { left: 2%;  font-size: 11px; animation-duration: 9s;  animation-delay: 3.2s; }
+        .snowflake:nth-child(25) { left: 48%; font-size: 14px; animation-duration: 12s; animation-delay: 2.5s; }
+
+        /* ===== 头部 ===== */
+        .header {
+            background: rgba(255, 255, 255, 0.18);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+            box-shadow: none;
+            padding: 16px 20px 12px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            flex-shrink: 0;
+        }
+
+        .header h1 {
+            color: #0f172a;
+            text-shadow: 0 1px 2px rgba(255,255,255,0.5);
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .header p {
+            color: #334155;
+            font-size: 13px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            background: #4CAF50;
+            color: white;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-top: 8px;
+        }
+
+        /* ===== 页面视图 ===== */
+        .page-section {
+            display: none;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            flex-direction: column;
+            opacity: 0;
+            transform: translateX(20px);
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            position: relative;
+            z-index: 1;
+        }
+
+        .page-section.active {
+            display: flex;
+            opacity: 1;
+            transform: translateX(0);
+            animation: pageIn 0.25s ease;
+        }
+
+        @keyframes pageIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .page-section.going-back {
+            animation: pageOut 0.25s ease forwards;
+        }
+
+        @keyframes pageOut {
+            from { opacity: 1; transform: translateX(0); }
+            to { opacity: 0; transform: translateX(-20px); }
+        }
+
+        /* ===== 容器 ===== */
+        .container {
+            padding: 15px;
+            max-width: 600px;
+            margin: 0 auto;
+            width: 100%;
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            position: relative;
+        }
+
+        /* ===== 卡片通用样式 ===== */
+        .card {
+            background: rgba(255, 255, 255, 0.22);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 20px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 8px 32px rgba(2, 132, 199, 0.12), inset 0 1px 0 rgba(255,255,255,0.4);
+            transition: transform 0.1s;
+        }
+
+        .card:active {
+            transform: scale(0.97);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* ===== 补货提醒（紧凑） ===== */
+        .alert-list-compact {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 30vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .alert-item-compact {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 13px;
+            color: #c62828;
+            font-weight: 500;
+        }
+
+        .alert-more {
+            text-align: center;
+            font-size: 12px;
+            color: #f44336;
+            font-weight: 500;
+            padding: 4px 0;
+        }
+
+        .alert-empty-compact {
+            background: #e8f5e9;
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+            font-size: 13px;
+            color: #4CAF50;
+            font-weight: 500;
+        }
+
+        /* ===== 入口卡片 ===== */
+        .entry-card {
+            background: rgba(255, 255, 255, 0.22);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 20px;
+            padding: 16px 18px;
+            margin-bottom: 12px;
+            box-shadow: 0 8px 32px rgba(2, 132, 199, 0.12), inset 0 1px 0 rgba(255,255,255,0.4);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            cursor: pointer;
+            transition: transform 0.1s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .entry-card:active {
+            transform: scale(0.97);
+        }
+
+        .entry-icon {
+            font-size: 28px;
+            flex-shrink: 0;
+            width: 40px;
+            text-align: center;
+        }
+
+        .entry-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .entry-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .entry-sub {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .entry-arrow {
+            font-size: 18px;
+            color: #94a3b8;
+            flex-shrink: 0;
+        }
+
+        /* ===== 二级页顶部栏 ===== */
+        .sub-header {
+            background: rgba(255, 255, 255, 0.18);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.35);
+            box-shadow: none;
+            padding: 12px 15px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            flex-shrink: 0;
+        }
+
+        .back-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: white;
+            border: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: #333;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: transform 0.1s;
+        }
+
+        .back-btn:active {
+            transform: scale(0.92);
+        }
+
+        .sub-header-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: #1e293b;
+            flex: 1;
+            text-align: center;
+            padding-right: 36px;
+        }
+
+        /* ===== 库存网格 ===== */
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .inventory-card {
+            background: rgba(255, 255, 255, 0.22);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 20px;
+            padding: 18px 14px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(2, 132, 199, 0.12), inset 0 1px 0 rgba(255,255,255,0.4);
+            transition: transform 0.1s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .inventory-card:active {
+            transform: scale(0.97);
+        }
+
+        .inventory-emoji {
+            font-size: 32px;
+            line-height: 1;
+            margin-bottom: 2px;
+        }
+
+        .inventory-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .inventory-category {
+            font-size: 11px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .inventory-count {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 3px 12px;
+            border-radius: 12px;
+            margin-top: 2px;
+        }
+
+        .count-pill-normal { background: #e8f5e9; color: #4CAF50; }
+        .count-pill-warning { background: #fff3e0; color: #FF9800; }
+        .count-pill-danger { background: #ffebee; color: #f44336; }
+
+        /* ===== 食谱网格 ===== */
+        .recipe-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .recipe-card {
+            background: rgba(255, 255, 255, 0.22);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(2, 132, 199, 0.12), inset 0 1px 0 rgba(255,255,255,0.4);
+            transition: transform 0.1s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .recipe-card:active {
+            transform: scale(0.97);
+        }
+
+        .recipe-header {
+            background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .recipe-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: white;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+        }
+
+        .recipe-body {
+            padding: 14px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .recipe-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .recipe-tag {
+            border: 1px solid #0284c7;
+            color: #0284c7;
+            border-radius: 10px;
+            padding: 2px 8px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .recipe-steps {
+            font-size: 12px;
+            color: #64748b;
+            line-height: 1.6;
+        }
+
+        .recipe-card .recipe-steps {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* ===== 时间戳 ===== */
+        .timestamp-bar {
+            text-align: center;
+            background: rgba(255,255,255,0.75);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.5);
+            border-radius: 20px;
+            margin: 0 15px 10px;
+            color: #0284c7;
+            font-size: 12px;
+            padding: 8px 0;
+            flex-shrink: 0;
+            z-index: 50;
+            font-weight: 500;
+            box-shadow: 0 4px 16px rgba(2,132,199,0.1);
+        }
+
+        .recipe-card { cursor: pointer; }
+
+        .recipe-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 200; }
+        .recipe-modal.active { display: block; }
+        .recipe-modal-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(2, 20, 40, 0.35); }
+        .recipe-modal-content {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 24px 24px 0 0;
+            max-height: 85vh; min-height: 40vh;
+            display: flex; flex-direction: column;
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        .recipe-modal-header {
+            padding: 16px 20px; border-bottom: 1px solid #f0f0f0;
+            display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+        }
+        .recipe-modal-close {
+            width: 32px; height: 32px; border-radius: 50%; border: none;
+            background: #f5f5f5; font-size: 16px; cursor: pointer;
+        }
+        .recipe-modal-header h3 { flex: 1; font-size: 18px; font-weight: 600; margin: 0; color: #1e293b; }
+        .recipe-modal-body { padding: 20px; overflow-y: auto; flex: 1; -webkit-overflow-scrolling: touch; }
+        .recipe-modal-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+        .recipe-modal-tag {
+            border: 1px solid #0284c7; color: #0284c7;
+            border-radius: 12px; padding: 4px 12px; font-size: 13px;
+        }
+        .recipe-modal-steps { font-size: 15px; line-height: 1.8; color: #334155; white-space: pre-line; }
+    </style>
+</head>
+<body>
+    <div class="snowflakes" aria-hidden="true">
+        <div class="snowflake">❄️</div>
+        <div class="snowflake">❅</div>
+        <div class="snowflake">❆</div>
+        <div class="snowflake">•</div>
+        <div class="snowflake">❄️</div>
+        <div class="snowflake">·</div>
+        <div class="snowflake">❅</div>
+        <div class="snowflake">•</div>
+        <div class="snowflake">❆</div>
+        <div class="snowflake">❄️</div>
+        <div class="snowflake">˚</div>
+        <div class="snowflake">❅</div>
+        <div class="snowflake">•</div>
+        <div class="snowflake">❆</div>
+        <div class="snowflake">·</div>
+        <div class="snowflake">❄️</div>
+        <div class="snowflake">❅</div>
+        <div class="snowflake">•</div>
+        <div class="snowflake">❆</div>
+        <div class="snowflake">˚</div>
+        <div class="snowflake">❄️</div>
+        <div class="snowflake">·</div>
+        <div class="snowflake">❅</div>
+        <div class="snowflake">•</div>
+        <div class="snowflake">❆</div>
+    </div>
+    {% set name_map = {
+        'banana': '香蕉',
+        'egg': '鸡蛋',
+        'tomato': '番茄',
+        'green_vegetable': '绿叶蔬菜',
+        'fanta_orange': '芬达橙味',
+        'ice_cream': '冰淇淋'
+    } %}
+    <!-- 一级首页 -->
+    <div id="home-section" class="page-section active">
+        <!-- 头部 -->
+        <div class="header">
+            <h1>❄️ 智能冰箱</h1>
+            <p>AI驱动的食材管理系统</p>
+            {% if device_id %}
+            <span class="status-badge" style="background: #2196F3;">设备: {{ device_id }}</span>
+            {% else %}
+            <span class="status-badge">● 系统运行正常</span>
+            {% endif %}
+        </div>
+
+        <div class="container">
+            <!-- 补货提醒（紧凑） -->
+            <div class="card" onclick="openAlertModal()" style="cursor: pointer;">
+                <div class="card-title">⚠️ 补货提醒</div>
+                {% if alerts %}
+                    <div class="alert-list-compact">
+                    {% for alert in alerts[:3] %}
+                    <div class="alert-item-compact">
+                        {{ name_map.get(alert.item_name, alert.item_name) }}库存不足（仅剩{{ alert.count }}个）
+                    </div>
+                    {% endfor %}
+                    </div>
+                    {% if alerts|length > 3 %}
+                    <div class="alert-more">+{{ alerts|length - 3 }} 项缺货</div>
+                    {% endif %}
+                {% else %}
+                    <div class="alert-empty-compact">
+                        ✅ 食材充足，无需补货
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- 库存入口 -->
+            <div class="entry-card" onclick="showPage('inventory-section')">
+                <div class="entry-icon">📦</div>
+                <div class="entry-info">
+                    <div class="entry-title">库存管理</div>
+                    <div class="entry-sub">共 {{ items|length }} 种食材</div>
+                </div>
+                <div class="entry-arrow">&gt;</div>
+            </div>
+
+            <!-- 食谱入口 -->
+            <div class="entry-card" onclick="showPage('recipes-section')">
+                <div class="entry-icon">👨‍🍳</div>
+                <div class="entry-info">
+                    <div class="entry-title">AI 食谱推荐</div>
+                    <div class="entry-sub">共 {{ recipes|length }} 道推荐菜</div>
+                </div>
+                <div class="entry-arrow">&gt;</div>
+            </div>
+        </div>
+        <div class="timestamp-bar">
+            {% if timestamp %}
+                上次数据更新 {{ timestamp }}
+            {% else %}
+                等待设备数据接入...
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 二级库存页 -->
+    <div id="inventory-section" class="page-section">
+        <div class="sub-header">
+            <button class="back-btn" onclick="goBack()">←</button>
+            <div class="sub-header-title">📦 库存管理</div>
+        </div>
+        <div class="container">
+            {% if items %}
+            <div class="inventory-grid">
+                {% for item in items %}
+                {% set limit = thresholds.get(item.name, 1) %}
+                <div class="inventory-card">
+                    <div class="inventory-emoji">
+                        {% if item.name == 'banana' %}🍌
+                        {% elif item.name == 'egg' %}🥚
+                        {% elif item.name == 'tomato' %}🍅
+                        {% elif item.name == 'green_vegetable' %}🥬
+                        {% elif item.name == 'fanta_orange' %}🥤
+                        {% elif item.name == 'ice_cream' %}🍦
+                        {% else %}📦
+                        {% endif %}
+                    </div>
+                    <div class="inventory-name">{{ name_map.get(item.name, item.name) }}</div>
+                    <div class="inventory-category">{{ item.category }}</div>
+                    <div class="inventory-count
+                        {% if item.count == 0 %}count-pill-danger
+                        {% elif item.count < limit %}count-pill-warning
+                        {% else %}count-pill-normal{% endif %}">
+                        {{ item.count }}个
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="card">
+                <p style="text-align: center; color: #999; padding: 20px;">暂无库存数据</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 二级食谱页 -->
+    <div id="recipes-section" class="page-section">
+        <div class="sub-header">
+            <button class="back-btn" onclick="goBack()">←</button>
+            <div class="sub-header-title">👨‍🍳 推荐食谱</div>
+        </div>
+        <div class="container">
+            {% if recipes %}
+            <div class="recipe-grid">
+                {% for recipe in recipes %}
+                <div class="recipe-card" onclick="openRecipeModal(this)"{% if recipe.image_url %} data-image-url="{{ recipe.image_url }}"{% endif %}>
+                    <div class="recipe-header"{% if recipe.image_url %} style="background: linear-gradient(135deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.3) 100%), url('{{ recipe.image_url }}'); background-size: cover; background-position: center;"{% endif %}>
+                        <div class="recipe-name">{{ recipe.name }}</div>
+                    </div>
+                    <div class="recipe-body">
+                        <div class="recipe-tags">
+                            {% for ing in recipe.ingredients %}
+                            <span class="recipe-tag">{{ name_map.get(ing, ing) }}</span>
+                            {% endfor %}
+                        </div>
+                        <div class="recipe-steps" data-full-steps>{{ recipe.steps }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="card">
+                <p style="text-align: center; color: #999; padding: 20px;">暂无推荐食谱</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div id="recipe-modal" class="recipe-modal">
+        <div class="recipe-modal-overlay" onclick="closeRecipeModal()"></div>
+        <div class="recipe-modal-content">
+            <div class="recipe-modal-header">
+                <button class="recipe-modal-close" onclick="closeRecipeModal()">✕</button>
+                <h3 id="modal-recipe-name">菜名</h3>
+            </div>
+            <div class="recipe-modal-body">
+                <img id="modal-recipe-image" src="" alt="" style="width:100%; border-radius:12px; margin-bottom:12px; display:none; object-fit: cover;">
+                <div class="recipe-modal-tags" id="modal-recipe-tags"></div>
+                <div class="recipe-modal-steps" id="modal-recipe-steps"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="alert-modal" class="recipe-modal">
+        <div class="recipe-modal-overlay" onclick="closeAlertModal()"></div>
+        <div class="recipe-modal-content">
+            <div class="recipe-modal-header">
+                <button class="recipe-modal-close" onclick="closeAlertModal()">✕</button>
+                <h3>⚠️ 全部补货提醒</h3>
+            </div>
+            <div class="recipe-modal-body">
+                <div id="modal-alert-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 页面切换逻辑
+        function switchSection(targetId) {
+            var target = document.getElementById(targetId);
+            if (target.classList.contains('active')) return;
+            document.querySelectorAll('.page-section').forEach(function(sec) {
+                sec.classList.remove('active');
+            });
+            target.classList.add('active');
+            window.scrollTo(0, 0);
+        }
+
+        function showPage(pageId) {
+            history.pushState({page: pageId}, '', '#' + pageId.replace('-section', ''));
+            switchSection(pageId);
+        }
+
+        function goBack() {
+            history.back();
+        }
+
+        window.addEventListener('popstate', function(event) {
+            var hash = location.hash;
+            var targetId = 'home-section';
+            if (hash === '#inventory') {
+                targetId = 'inventory-section';
+            } else if (hash === '#recipes') {
+                targetId = 'recipes-section';
+            }
+            switchSection(targetId);
+        });
+
+        // 初始化：根据 URL hash 显示对应页面
+        (function() {
+            var hash = location.hash;
+            var targetId = 'home-section';
+            if (hash === '#inventory') {
+                targetId = 'inventory-section';
+            } else if (hash === '#recipes') {
+                targetId = 'recipes-section';
+            }
+            switchSection(targetId);
+        })();
+
+        // 被动刷新：只在该设备有数据更新时才刷新页面
+        (function() {
+            const deviceId = new URLSearchParams(location.search).get('device_id') || '';
+            let lastUpdateTime = null;
+
+            fetch(`/api/last_update?device_id=${deviceId}`)
+                .then(r => r.json())
+                .then(data => {
+                    lastUpdateTime = data.last_update;
+                })
+                .catch(() => {});
+
+            setInterval(function() {
+                fetch(`/api/last_update?device_id=${deviceId}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.last_update && data.last_update !== lastUpdateTime) {
+                            lastUpdateTime = data.last_update;
+                            location.reload();
+                        }
+                    })
+                    .catch(() => {});
+            }, 3000);
+        })();
+
+        // 食谱弹窗
+        function openRecipeModal(card) {
+            const name = card.querySelector('.recipe-name').innerText;
+            const tags = Array.from(card.querySelectorAll('.recipe-tag')).map(t => t.innerText);
+            const steps = card.querySelector('[data-full-steps]').innerText;
+            const imageUrl = card.getAttribute('data-image-url');
+            
+            const imgEl = document.getElementById('modal-recipe-image');
+            if (imageUrl) {
+                imgEl.src = imageUrl;
+                imgEl.style.display = 'block';
+            } else {
+                imgEl.style.display = 'none';
+            }
+            
+            document.getElementById('modal-recipe-name').innerText = name;
+            document.getElementById('modal-recipe-tags').innerHTML = tags.map(t => 
+                `<span class="recipe-modal-tag">${t}</span>`).join('');
+            document.getElementById('modal-recipe-steps').innerText = steps;
+
+            document.getElementById('recipe-modal').classList.add('active');
+        }
+
+        function closeRecipeModal() {
+            document.getElementById('recipe-modal').classList.remove('active');
+        }
+
+        function openAlertModal() {
+            const alerts = [
+                {% for alert in alerts %}
+                { name: "{{ name_map.get(alert.item_name, alert.item_name) }}", count: {{ alert.count }}, message: "{{ name_map.get(alert.item_name, alert.item_name) }}库存不足（仅剩{{ alert.count }}个）" }{% if not loop.last %},{% endif %}
+                {% endfor %}
+            ];
+            
+            const html = alerts.map(a => `
+                <div class="alert-item-compact" style="margin-bottom:8px;">
+                    ${a.message}
+                </div>
+            `).join('');
+            
+            document.getElementById('modal-alert-list').innerHTML = html || '<div style="text-align:center;color:#4CAF50;padding:20px;">✅ 所有食材充足，无需补货</div>';
+            document.getElementById('alert-modal').classList.add('active');
+        }
+
+        function closeAlertModal() {
+            document.getElementById('alert-modal').classList.remove('active');
+        }
+
+        // 防止移动端双击缩放
+        document.addEventListener('touchstart', function(event) {
+            if (event.touches.length > 1) {
+                event.preventDefault();
+            }
+        }, { passive: false });
+    </script>
+</body>
+</html>
